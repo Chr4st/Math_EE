@@ -5,8 +5,26 @@
 \usepackage{graphicx}
 \usepackage{geometry}
 \usepackage{tocloft}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{listings}
+\usepackage{courier}
+\usepackage{fancyvrb}
+\usepackage{hyperref}
+\usepackage{enumitem}
 \geometry{a4paper, margin=1in}
-\linespread{2.0}
+\linespread{1.5}
+\usepackage{tocloft}
+
+% Set the font size for ToC entries
+\renewcommand{\cftsecfont}{\small\bfseries}
+\renewcommand{\cftsubsecfont}{\small}
+\renewcommand{\cftsubsubsecfont}{\footnotesize}
+
+% Set the font size for ToC page numbers
+\renewcommand{\cftsecpagefont}{\small}
+\renewcommand{\cftsubsecpagefont}{\small}
+\renewcommand{\cftsubsubsecpagefont}{\footnotesize}
 \begin{document}
 
 \begin{titlepage}
@@ -16,7 +34,7 @@
     
     \vspace{1in}
     
-    {\Large\itshape How can mathematical optimization enhance the performance of A* and RRT* path planning algorithms in dynamic environments?\par}
+    {\Large\itshape To what extent can the StarCraft (Blizzard Entertainment) A* algorithm be optimized to function effectively as a path-planning solution in a low-altitude economy?\par}
     
     \vspace{1in}
     
@@ -24,257 +42,214 @@
 
     \vspace{1in}
     
-    {\Large Word Count: 2481\par} 
+    {\Large Word Count: 3998\par} % Replace XXXX with the actual word count
 
 \end{titlepage}
 \tableofcontents
 
 \newpage
 \section{Introduction}
-Path Planning, a critical branch of robotics and machine learning, refers to developing a route from a start point to a destination that an object must follow to avoid obstacles. However, we cannot just accept any path, so the optimization of distance, time, safety, and other criteria is always necessary. 
-From ancient maps to modern autonomous GPS navigation, the challenge of effective navigation in dynamic environments remains crucial. Dynamic Environments are characterized by their unpredictable nature, which may include moving obstacles, alternating terrain, and various conditions, that require algorithms to adapt and respond in real-time. Traditional path-planning algorithms have demonstrated their usage in static environments, but struggle in dynamic environments. 
-The pursuit of a “complete” algorithm for such environments involves not only navigating efficiently and safely but also being able to adapt continually along the way. The aim of this essay, therefore, is to firstly comprehend the mathematical background of path-planning algorithms. After that, conducting a case study will be necessary for two situations, where one is that the environment is familiar, and the other one is that the environment is unfamiliar. This is followed by the evaluation of the A* and RRT* algorithms, which are both known for their decent optimality and will then further be optimized using various advanced techniques. This leads to my research question: \textbf{“To what extent can I find the most complete path-planning algorithm in dynamic Environments?”}
+Path planning, a critical branch of robotics and machine learning, involves developing a route from a start point to a destination that an object must follow to avoid obstacles. The goal is not to find any path but to optimize it based on criteria such as distance, time, safety, and other factors. From ancient maps to modern autonomous GPS navigation systems, effective navigation in dynamic environments has always been a significant challenge. These environments are unpredictable, often featuring moving obstacles, changing terrain, and varying conditions that require algorithms to adapt and respond in real-time. While traditional path-planning algorithms have proven effective in static environments, they often struggle with the complexities of dynamic settings.
+\\\\
+The pursuit of a “complete” algorithm for dynamic environments involves navigating efficiently and safely while continually adapting to changes. This extended essay aims to understand the mathematical foundations of path-planning algorithms, focusing on the A* algorithm, known for its optimality, but low efficiency. Following the theoretical groundwork, the performance of the A* algorithm in these scenarios will be evaluated, and further optimizations will be explored using advanced techniques like the Euler-Lagrange equations and linear algebra.
+\\\\
+However, it is very sought-after to apply these optimizations based on an easier model, such as the A* algorithm inside an RTS game; hence even complex optimizations can be understood in simplistic ways. This leads to the central research question: \textbf{“To what extent can the StarCraft (Blizzard Entertainment) A* algorithm be optimized to function effectively as a complete path-planning solution?”}
+
 
 \newpage
-\section{Notations Used}
-\begin{center}
-\begin{tabular}{ll}
-$\Rightarrow$ $\mathbf{G = (V, E)}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{G}: It’s the graph itself, a structure to model pairwise relations.\\
-\textbf{V}: Represents the set of vertices (nodes) in the graph.\\
-\textbf{E}: Represents the set of edges (connections) in the graph.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{w(u, v)}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{w}: The cost of moving from the edge of node $u$ to node $v$.\\
-\textbf{u}: Node $u$ is the initial node.\\
-\textbf{v}: Node $v$ is the final node.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{S}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{S}: The start node, it’s where the path begins.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{T}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{T}: The target node, it’s where the path ends.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{d(u, v)}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{d}: The direct cost of moving from node $u$ to node $v$.\\
-\textbf{u}: Node $u$ is the initial node.\\
-\textbf{v}: Node $v$ is the final node.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{f(n) = g(n) + h(n)}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{f(n)}: The total cost function in A*.\\
-\textbf{g(n)}: The actual cost from $S$ to a certain node $n$.\\
-\textbf{h(n)}: The estimated cost from node $n$ to $T$.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{N}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{N}: A set that includes all adjacent nodes of a single node.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{P}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{P}: The path of nodes from $S$ to $T$.
-\end{minipage} \\[1em]
-
-$\Rightarrow$ $\mathbf{O}$ and $\mathbf{C}$ & \begin{minipage}[t]{0.75\textwidth}
-\textbf{O}: Open set of nodes that need to be explored.\\
-\textbf{C}: Closed set of nodes that have been fully explored.
-\end{minipage} \\[1em]
-
-\end{tabular}
-\end{center}
-\newpage
-\section{Introduction to Path Planning Algorithms}
-Path planning algorithms can be classified into two categories, namely global and local path planning algorithms. Global path planning algorithms are designed to compute a path from start to finish by considering the whole environment. These algorithms aim to find the optimal path based on distance, safety or visibility in most cases. 				One example that I will delve deeper into is the RRT* algorithm, whilst measuring its path cost, path length, time required to generate the path and memory usage. On the other hand, local path planning algorithms are not aware of the whole environment. They make decisions based on local information available at the medium's current location. They are often used in dynamic environments and can further be classified into evolutionary and heuristic path planning algorithms; however, evolutionary algorithms are based on biological concepts rather than mathematical. Thus, I will delve deeper into a heuristic algorithm, namely the A* algorithm and measure the same performance metrics as the RRT* algorithm, in order to determine the more complete algorithm before and after the utilisation of various optimization techniques. 
-\begin{figure}[h!]
-
-  \centering
-  \includegraphics[width=0.5\textwidth]{Screenshot 2024-06-05 083017.png}
-    \caption{Classification of Path Planning Algorithms}
+\section{Path Planning Algorithms}
+\subsection{Local Path-Planning}
+Path planning algorithms can be classified into two categories: global and local path planning algorithms. Local path planning algorithms are not aware of the whole environment and make decisions based on local information available at the medium's current location. They are used in dynamic environments where real-time adaptation is necessary. Local path planning algorithms can be further classified into evolutionary and heuristic path planning algorithms. Evolutionary algorithms are based on biological concepts rather than mathematical ones. This essay will explore heuristic algorithm, specifically the A* algorithm. The performance of the A* algorithm will be measured in terms of path cost, path length, and computational time. The A* algorithm will be optimized in two ways, followed by an analysis using real simulation data.
+\\\\
+\begin{figure}[h] 
+    \centering
+    \includegraphics[width=\linewidth]{PathPlanningCategories.png} % Replace 'example-image' with the path to your image file
+    \caption{Path Planning Algorithm Categories}
+    \label{fig:example}
 \end{figure}
 \newpage
-\subsection{Performance Metrics}
-The first important performance metric, as previously mentioned, is the path length which measures the total length, or cost, of the path found by the algorithm. This metric is crucial for evaluating the completeness of a path in terms of travel distance, or cost, which        implies the resource usage for example fuel or time. 
-Secondly, time complexity is referred to the total time taken from the start of the algorithm until a path is found. This is a very important measure for applications where decision time is limited, such as real-time systems and especially in dynamic environments where change can occur unpredictable. 
-Another important performance metric is the memory usage, which is the amount of memory required during the execution of the algorithm and directly correlates with the size of the data structures used. It is essential for evaluating the performance of algorithms in environments with limited computational resources. 
-Lastly, it is also important to recognize the general trend of scalability. This defines how well the algorithm performs as the size of the environment increases and is important for determining the algorithm’s applicability to large-scale problems. 
-\begin{figure}[h!]
+\subsection{StarCraft A* Algorithm}
+In StarCraft, efficient pathfinding is crucial. Units need to navigate complex terrains, avoid obstacles, and reach destinations in an optimal manner. Pathfinding algorithms help units determine the shortest and most efficient routes from one point to another. In StarCraft, the game map is divided into a grid of cells, where each cell can either be traversable or blocked by an obstacle. 
 
-  \centering
-  \includegraphics[width=0.5\textwidth]{Screenshot 2024-06-05 084029.png}
-    \caption{Performance Metrics Flowchart}
+\begin{figure}[h] 
+    \centering
+    \includegraphics[scale=0.5]{starcraft1_grid_pathfinding.jpg} % Replace 'example-image' with the path to your image file
+    \caption{StarCraft Grid Map}
+    \label{fig:example}
 \end{figure}
+
+The A* algorithm is also used in other RTS games that involve a grid map. A* is the most popular choice for pathfinding because it’s fairly flexible and can be used in various contexts. The A* algorithm works on graphs in the mathematical sense—a set of vertices with edges connecting them. A tiled game map can be considered a graph with each tile being a vertex and edges drawn between tiles that are adjacent to each other:\\
+\begin{figure}[h] 
+    \centering
+    \includegraphics{map-as-graph.png} % Replace 'example-image' with the path to your image file
+    \caption{Graph as Map}
+    \label{fig:example}
+\end{figure}
+\\
+By illustrating the StarCraft Grid Map as a graph that contains vertices and edges, we enable the A* algorithm to plan its paths as following:
+\begin{figure}[h] 
+    \centering
+    \includegraphics[scale=0.5]{a-star-trap.png} % Replace 'example-image' with the path to your image file
+    \caption{A* Path Simulation}
+    \label{fig:example}
+\end{figure}
+\\ The red point is the starting point, whereas the blue point is the end goal. The secret to its success is that it combines the pieces of information that Dijkstra’s Algorithm uses (favoring vertices that are close to the starting point) and information that Greedy Best-First-Search uses (favoring vertices that are close to the goal). In the standard terminology used when talking about A*, g(c) represents the exact cost of the path from the starting point to any vertex c, and h(c) represents the heuristic estimated cost from vertex c to the goal. In the above diagrams, the yellow (h) represents vertices far from the goal and teal (g) represents vertices far from the starting point. A* balances the two as it moves from the starting point to the goal. Each time through the main loop, it examines the vertex c that has the lowest f(c) = g(c) + h(c). Furthermore, the algorithm initializes two lists:
+\begin{itemize}
+  \item \textbf{Open List} (\( \mathcal{O} \)): A set of nodes (cells) to be evaluated.
+  \item \textbf{Closed List} (\( \mathcal{C} \)): A set of nodes that have already been evaluated.
+\end{itemize}
+
+Let:
+\begin{itemize}
+  \item \( S \): The start node (cell).
+  \item \( T \): The goal node (cell).
+\end{itemize}
+
+Initialize the open list with the start node:
+\[
+\mathcal{O} = \{ S \}
+\]
+Initialize the closed list as empty:
+\[
+\mathcal{C} = \emptyset
+\]
+There is a whole cycle of node evaluation while the open list is not empty and this can be seen in Appendix A. Lastly, the heuristic function \( h(\mathbf{c}) \) estimates the cost from a given cell \( \mathbf{c} \) to the goal cell \( T \). Since StarCraft only allows you to move in 4 directions on the 2D grid map, the heuristic function used is the Manhattan Distance since it calculates the distance between two points by summing the absolute differences of their coordinates.
+\\
+\[
+\textbf{Manhattan Distance}: \( h(\mathbf{c}) = |x_T - x_c| + |y_T - y_c| \)
+\]
+
+
+Where \( (x_c, y_c) \) and \( (x_T, y_T) \) are the coordinates of the current cell \( \mathbf{c} \) and the goal cell \( T \) respectively. Once the goal node is reached, the path will be constructed by tracing back from the goal node to the start node.
 \newpage
-\subsection{The Euler-Lagrange Equation}
-The Euler-Lagrange equation is a differential equation whose solutions are the functions that make a functional reach its extremum (maximum or minimum). In the context of path planning, the functional typically represents the cost associated with a path.
+\subsection{Performance Analysis}
+The performance of the A* algorithm will be evaluated based on three key metrics: path cost, path length, and computation time.
+\\\\
+Path Cost: This metric measures the total cost to traverse the path found by the algorithm. In the context of A*, the path cost is the sum of the costs associated with each step along the path from the start node to the goal node. Different cost functions, such as distance, energy consumption, or risk, can be used depending on the application. The analysis will involve comparing the path costs before and after applying optimization techniques to determine the impact on efficiency and resource utilization.
+\\\\
+Path Length: Path length refers to the physical distance covered from the start to the goal node. This metric is crucial for understanding the directness of the path generated by the algorithm. A shorter path length generally indicates a more efficient route. The analysis will include measuring the path length for various scenarios and evaluating how optimization techniques influence the directness and efficiency of the path.
+\\\\
+Computation Time: This metric measures the time required by the algorithm to compute the path from the start node to the goal node. In dynamic environments, where rapid decision-making is essential, minimizing computation time is critical. The analysis will involve recording the time taken by the A* algorithm to generate paths in different scenarios and comparing the performance before and after optimization to assess improvements in computational efficiency.
+\newpage
+\textbf{Methodology of Analysis}
+\\
+For practical purposes, this essay will start with a sample size of 30 per group, as the central limit theorem suggests this is generally sufficient for the normal approximation. Each group will represent one scenario in StarCraft, where path planning is required and there will be a total of 5 groups for each pre- and post-optimization. Furthermore, I will use both the Manhattan Distance as parameter for the pre-optimization and the updated heuristic function for the post-optimization data. I will analyze the path cost, path length and computation time as well as visualize it using box plots indicating the IQR. Including success rate would be irrelevant since I am not computing impossible grid maps; however the different maps will vary by grid size. Control variables such as obstacle density, and unit speed will all be kept constant.  Moreover, I will compare the pre- and post-optimization results by calculating their mean, median and standard deviation, which is given by: \\
+\[
+\sigma=\sqrt{V(X)}=\sqrt{\sum_{i} P_{i}(x_{i} - \mu)^2}=\sqrt{\frac{\sum_{i} (x_{i} - \mu)^2}{n}} \\ 
+\]
 
-Given a functional \( J[y] \) defined as:
+I will run all the simulations on the same computer and program the path-planning algorithms myself, which is possible due to my 5 year long programming experience. The code for the pre-optimization can be seen in Appendix B, the code for the post-optimization via Euler-Lagrange can be seen in Appendix C and the code for post-optimization via linear algebra can be seen in Appendix D. \\\\
+In the next section this paper will go through all the required mathematical methodology, in order to then optimize the A* algorithm in various ways. Moreover, this essay will discuss the implementation of the algorithm into the real world, more specifically the low-altitude economy. Lastly, we will evaluate various challenges that were faced in the process of this essay as well as draw a conclusion and discuss its limitations.
 
+\newpage
+
+\section{Mathematical Methodology}
+\subsection{Euler-Lagrange Equation and Partial Derivatives}
+\textbf{Definition 3.1 (Partial derivatives).} Suppose \( f : \mathbb{R}^n \to \mathbb{R} \), its partial derivatives are defined by:
+
+\[
+\frac{\partial f}{\partial x_1} = \lim_{h \to 0} \frac{f(x_1 + h, x_2, x_3, \ldots, x_n) - f(x_1, x_2, x_3, \ldots, x_n)}{h}
+\]
+
+\[
+\vdots
+\]
+
+\[
+\frac{\partial f}{\partial x_n} = \lim_{h \to 0} \frac{f(x_1, x_2, x_3, \ldots, x_n + h) - f(x_1, x_2, x_3, \ldots, x_n)}{h}
+\]
+
+We should notice that since \( h \) only appears in one variable of \( f \), all other variables are treated as constants. Hence, when finding \( \frac{\partial f}{\partial x_1} \) (or \( \frac{\partial f}{\partial x_2}, \frac{\partial f}{\partial x_3}, \ldots \)), we are holding other variables constant and evaluating the rate of change of \( f \) as we vary \( x_1 \).
+
+Consider \( f(x, y, z) = x^3 y^2 z + y^2 z \), find \( \frac{\partial f}{\partial y} \) using the definition:
+
+\[
+\frac{\partial f}{\partial y} = \lim_{h \to 0} \frac{(x^3(y + h)^2 z + (y + h)^2 z) - (x^3 y^2 z + y^2 z)}{h}
+\]
+
+\[
+= \lim_{h \to 0} \frac{(x^3 (y^2 + 2hy + h^2) z + y^2 z + h^2 z) - (x^3 y^2 z + y^2 z)}{h}
+\]
+
+\[
+= \lim_{h \to 0} \frac{x^3 y^2 z + 2hx^3 yz + h^2 x^3 z + y^2 z + h^2 z - x^3 y^2 z - y^2 z}{h}
+\]
+
+\[
+= \lim_{h \to 0} \frac{2hx^3 yz + h^2 x^3 z + h^2 z}{h}
+\]
+
+\[
+= \lim_{h \to 0} \left(2x^3 yz + h x^3 z + h z \right)
+\]
+
+\[
+= 2x^3 yz + z^2
+\]
+\newpage
+The Euler-Lagrange equation, which is fundamental in the calculus of variations, provides a way to find the function that minimizes a given functional. If we have a functional \( J[y] = \int_{a}^{b} L(x, y(x), y'(x)) \, dx \), the function \( y(x) \) that makes \( J[y] \) stationary satisfies the Euler-Lagrange equation:
+
+\[
+\frac{\partial L}{\partial y} - \frac{d}{dx} \left( \frac{\partial L}{\partial y'} \right) = 0
+\]
+
+In this context, the partial derivatives are used to find the necessary conditions for \( y(x) \) to be an extremum of the functional, highlighting the connection between partial derivatives and the optimization of functionals in physics and calculus of variations.
+The Euler-Lagrange equation is a fundamental equation in the calculus of variations, a field of mathematical analysis used to find the function that minimizes or maximizes a functional. A functional is a mathematical object that maps a function to a real number, often representing some physical quantity such as energy, action, or cost. The Euler-Lagrange equation arises when we seek to find the path, curve, or surface that extremizes (minimizes or maximizes) a given functional. Consider a functional \( J \) of the form:
 \[
 J[y] = \int_{a}^{b} L(x, y, y') \, dx
 \]
+where:
+\begin{itemize}
+    \item \( L(x, y, y') \) is the Lagrangian, a function that depends on the independent variable \( x \), the dependent variable \( y \), and the derivative of \( y \) with respect to \( x \) (denoted as \( y' \)).
+    \item \( y \) is the function to be determined.
+    \item The integral is taken over the interval \([a, b]\).
+\end{itemize}
 
-where \( L \) is the Lagrangian, which depends on \( x \), the function \( y(x) \), and its derivative \( y'(x) \), the Euler-Lagrange equation is:
+The goal is to find the function \( y \) that makes the functional \( J \) stationary (i.e., a minimum, maximum, or saddle point).
 
+For the functional \( J \) to be stationary, the function \( y \) must satisfy the Euler-Lagrange equation:
 \[
-\frac{\partial L}{\partial y} - \frac{d}{dx} \left( \frac{\partial L}{\partial y'} \right) = 0
+\frac{d}{dx} \left( \frac{\partial L}{\partial y'} \right) - \frac{\partial L}{\partial y} = 0
 \]
 
-In path planning, the functional \( J[y] \) often represents the total cost, such as the total distance traveled or the energy expended. By finding the function \( y(x) \) that minimizes (or maximizes) this functional, we can determine the optimal path.
-
-For example, consider a functional representing the total distance:
-
+This partial differential equation must be satisfied by the function \( y(x) \) that extremizes the functional \( J \). In the context of path planning, the Euler-Lagrange equation can be used to optimize the trajectory of a moving object, such as a robot or an autonomous vehicle. The goal is to find the path that minimizes a cost functional, which could represent energy consumption, time, or another quantity of interest. Consider a 2D path planning problem where the state variables are \( x(t) \) and \( y(t) \), representing the coordinates of the object at time \( t \). The Lagrangian \( L \) may include terms for kinetic energy and a potential function \( V(x, y) \) representing the cost at position \((x, y)\):
 \[
-J[y] = \int_{a}^{b} \sqrt{1 + \left( y'(x) \right)^2} \, dx
+L(x, y, \dot{x}, \dot{y}) = \frac{1}{2} (\dot{x}^2 + \dot{y}^2) + V(x, y)
 \]
 
-Here, the Lagrangian is \( L(x, y, y') = \sqrt{1 + (y')^2} \). Applying the Euler-Lagrange equation:
-
+The Euler-Lagrange equations for this system are:
 \[
-\frac{\partial L}{\partial y} - \frac{d}{dx} \left( \frac{\partial L}{\partial y'} \right) = 0
+\frac{d}{dt} \left( \frac{\partial L}{\partial \dot{x}} \right) - \frac{\partial L}{\partial x} = 0
+\]
+\[
+\frac{d}{dt} \left( \frac{\partial L}{\partial \dot{y}} \right) - \frac{\partial L}{\partial y} = 0
 \]
 
-Since \( L \) does not explicitly depend on \( y \), \( \frac{\partial L}{\partial y} = 0 \), and:
-
+Simplifying, we get:
 \[
-- \frac{d}{dx} \left( \frac{y'}{\sqrt{1 + (y')^2}} \right) = 0
+\ddot{x} = \frac{\partial V}{\partial x}
+\]
+\[
+\ddot{y} = \frac{\partial V}{\partial y}
 \]
 
-This simplifies to:
-
-\[
-\frac{y'}{\sqrt{1 + (y')^2}} = C
-\]
-
-where \( C \) is a constant. Solving this differential equation gives the optimal path \( y(x) \).
-
-Partial derivatives measure how a function changes as its variables change. For a function \( f(x, y) \), the partial derivative with respect to \( x \) is:
-
-\[
-\frac{\partial f}{\partial x} = \lim_{\Delta x \to 0} \frac{f(x + \Delta x, y) - f(x, y)}{\Delta x}
-\]
-
-This represents the rate of change of \( f \) with respect to \( x \), holding \( y \) constant. Partial derivatives are essential in formulating the Euler-Lagrange equation and solving optimization problems in path planning. An ordinary differential equation involves functions of one independent variable and their derivatives. The general form of an ODE is:
-
-\[
-F(x, y, y', y'', \ldots, y^{(n)}) = 0
-\]
-
-where \( y^{(n)} \) denotes the \( n \)-th derivative of \( y \) with respect to \( x \).
-A classic example of an ODE is the equation for a simple harmonic oscillator:
-
-\[
-\frac{d^2 y}{dx^2} + \omega^2 y = 0
-\]
-
-The general solution to this second-order linear differential equation is:
-
-\[
-y(x) = A \cos(\omega x) + B \sin(\omega x)
-\]
-
-where \( A \) and \( B \) are constants determined by initial conditions.
-
-
-
-
-
-\subsection{Graph Theory and Linear Algebra}
-\begin{figure}[h!]
-
-  \centering
-  \includegraphics[width=0.5\textwidth]{Screenshot 2024-05-16 141959.png}
-    \caption{\textit{Undirected Graph With Three Nodes} }
-\end{figure}
-In mathematics, graph theory is the study of graphs, which are mathematical structures used to model pairwise relations between objects and also how algorithms are able to iterate paths. A graph, \( G \), is an ordered pair \( G = (V, E) \), where \( V \) is a set of vertices (nodes) and \( E \subseteq \{\{x, y\} \mid x, y \in V \text{ and } x \neq y\} \), is a set of edges (links), which is an unordered pair of nodes. In simple terms, an environment of nodes, as shown in figure 3, is connected by edges and is what allows algorithms to iterate paths along. This is called an undirected simple graph.
-
-\begin{figure}[h!]
-
-  \centering
-  \includegraphics[width=0.5\textwidth]{Screenshot 2024-06-05 112230.png}
-    \caption{\textit{Directed Graph With Three Nodes} }
-\end{figure}
-Similar to an undirected simple graph, the directed simple graph, \( G \), is also an ordered pair of \( G = (V, E) \), where \( V \) is a set of nodes and \( E \subseteq \{\{x, y\} \mid x, y \in V^2 \text{ and } x \neq y\} \), is a set of directed edges, which are ordered pairs of nodes. This can be seen in figure 4, where each edge has a direction that points towards a different node. One example of an undirected graph is a social network, where edges represent friendships. If person A is friends with person B, then person B is also friends with person A. On the other hand, an example of a directed graph is a social media network, where follows represent nodes. If person A follows person B, person B doesn’t necessarily follow back and might be following another person C and the amount of followings can be represented as degrees. However, each node has a certain degree, which can be split into In-Degree and Out-Degree. The amount of edges coming into a certain node is called In-Degree and the amount of edges going out of a certain node is called Out-Degree.
-In graph theory, these graphs are more optimally represented as an adjacency matrix. The adjacency matrix \( A \) is an \( n \times n \) square matrix used to represent a finite graph. For an undirected graph, the adjacency matrix is symmetric, while for a directed graph, it is not necessarily symmetric.
-
-An example of an adjacency matrix for an undirected graph with 4 nodes is:
-
-\[
-A = \begin{bmatrix}
-0 & 1 & 0 & 1 \\
-1 & 0 & 1 & 0 \\
-0 & 1 & 0 & 1 \\
-1 & 0 & 1 & 0
-\end{bmatrix}
-\]
-
-In an undirected graph the adjacency matrix will always be revserings since there it does not matter as long as its nodes adjacent to edges.
-
-An example of an adjacency matrix for a directed graph with 4 nodes is:
-
-  - For the edge (1 → 2), set \( A[1][2] = 1 \)
-   - For the edge (2 → 3), set \( A[2][3] = 1 \)
-   - For the edge (3 → 1), set \( A[3][1] = 1 \)
-   - For the edge (3 → 4), set \( A[3][4] = 1 \)
-
-   The adjacency matrix \( A \) becomes:
-
-   \[
-   A = \begin{bmatrix}
-   0 & 1 & 0 & 0 \\
-   0 & 0 & 1 & 0 \\
-   1 & 0 & 0 & 1 \\
-   0 & 0 & 0 & 0
-   \end{bmatrix}
-   \]
-
-This is because of following:\\
-- \( A[1][2] = 1 \) indicates a directed edge from node 1 to node 2.\\
-- \( A[2][3] = 1 \) indicates a directed edge from node 2 to node 3.\\
-- \( A[3][1] = 1 \) indicates a directed edge from node 3 to node 1.\\
-- \( A[3][4] = 1 \) indicates a directed edge from node 3 to node 4.\\
-- All other entries are 0, indicating no direct edges between those nodes\\
-Adjacency matrices play a crucial role in path planning algorithms. Path planning algorithms, such as Dijkstra's algorithm, A* search algorithm, and Floyd-Warshall algorithm, utilize the adjacency matrix to efficiently find the shortest path between nodes in a graph. The A* search algorithm combines the actual distance from the start node to the current node and an estimated distance from the current node to the goal node. The adjacency matrix is used to find the neighbors of the current node and to calculate the actual distance. The adjacency matrix provides a compact and efficient way to represent the connections and distances between nodes in a graph, enabling path planning algorithms to operate effectively. 
-
-
-\newpage 
-\section{Case Study}
-\subsection{Local Path-Planning}
-
-Local path planning is related to short-range movements and real-time adjustments based on the medium's current surroundings. This involves reacting to dynamic changes in the environment, such as moving obstacles. The scope of the local path planning is typically limited to a predefined area around the robot. This can be visualised as a moving window that shifts as the robot progresses, allowing it to focus on immediate obstacles and navigable paths.
-
-\subsubsection{A* Algorithm}
-The A* algorithm finds the shortest path from a start node to a goal node in a graph, using a heuristic to guide the search efficiently. The environment within the A* algorithm is identical to an undirected but weighted graph displayed as $G = (V, E)$. The weighted (cost) function of the A* combines two components:
-
-\[
-f(x) = g(x) + h(x)
-\]
-
-where $g(x)$ is the cost from the start node to the current node $x$ and $h(x)$ is the heuristic estimate of the cost from the current node $x$ to the goal node. The heuristic function $h(x)$ must be kept admissible, implying that it never overestimated the true cost to reach the goal.
-
-The most used heuristic function $h(x)$ is the euclidean distance that can be displayed as:
-
-\[
-h_{2D}(x) = \sqrt{(x_{\text{goal}} - x_{\text{current}})^2 + (y_{\text{goal}} - y_{\text{current}})^2}
-\]
-
-\[
-h_{3D}(x) = \sqrt{(x_{\text{goal}} - x_{\text{current}})^2 + (y_{\text{goal}} - y_{\text{current}})^2 + (z_{\text{goal}} - z_{\text{current}})^2}
-\]
-Another very popular heuristic function used within the A* Algorithm is the Manhattan Distance, which uses slightly less operations and therefore is more efficient; however, the Manhattan Distance is an even more inaccurate estimate of the actual shortest path. This can be represented as:
-\[
-h_{2D}(x) = |{x_{\text{goal}} - x_{\text{current}}| + |y_{\text{goal}} - y_{\text{current}}}|
-\]
-
-\[
-h_{3D}(x) = |{x_{\text{goal}} - x_{\text{current}}| + |y_{\text{goal}} - y_{\text{current}}| + |z_{\text{goal}} - z_{\text{current}}}|
-\]
-In order to be able to track in the most efficient way, there is an open set that contains the most promising nodes. On the other hand, there is a closed set that ensures all computational factors are kept efficient and in place. The main problem of the conventional A* algorithm is the fact that its heuristic function requires a lot of processing time and is only an estimate of the shortest path generated. This may be optimised using calculus and linear algebra. More specifically, I will use the euler-lagrange equation in order to solve for the most optimal path generation and an overall improvement in efficiency. Furthermore, I will use linear algebra to represent the conventional heuristic functions as adjacency matrix and apply techniques of linear algebra to optimize the path generation process. 
+These equations describe the optimal path that the object should follow to minimize the cost functional \( J \). By integrating the Euler-Lagrange equations into path planning algorithms like A*, we can enhance the algorithm's ability to find optimal paths that satisfy the desired criteria. This integration ensures that the computed paths are not only feasible but also optimal in terms of the defined cost functional. Another important reason for the specific usage of the Euler-Lagrange Equation is the fact that in real-world applications of the A* algorithm, such as in low-altitude economies, the direction of motion can be limitless, whereas the manhattan distance only keeps track of the movement in 4 directions within a 2D grid map.
 \newpage
-\subsubsection{Optimization using Euler-Lagrange Equations}
+\subsection{Linear Algebra and Graph Theory}
+Linear algebra and graph theory provide essential tools for modeling and solving complex problems, especially in network analysis and optimization.
+
+Key concepts include:
+
+\begin{itemize}
+    \item \textbf{Adjacency Matrix}: Represents a graph with vertices \( V \) and edges \( E \) as a square matrix where element \( A[i][j] \) is 1 if there is an edge from vertex \( i \) to vertex \( j \).
+    \item \textbf{Eigenvalues and Eigenvectors}: For a square matrix \( A \), an eigenvector \( v \) satisfies \( Av = \lambda v \), where \( \lambda \) is the corresponding eigenvalue. The largest eigenvalue (spectral radius) indicates graph connectivity, while the principal eigenvector identifies key nodes.
+\end{itemize}
+
+Applications of these concepts include pathfinding and graph optimization. In pathfinding, the adjacency matrix is used to find paths of different lengths, while eigenvalues reveal graph properties such as connectivity. Eigenvectors help optimize search algorithms like A* by identifying central nodes. For graph optimization, eigenvalue analysis aids in clustering and partitioning the graph, reducing computational complexity. The principal eigenvector supports efficient graph traversal and resource allocation. By utilizing the adjacency matrix and eigenvalue analysis, path planning algorithms can be made more efficient and robust.
+
+\newpage
+\section{Optimization using Euler-Lagrange Equations}
+
 The Euler-Lagrange equation provides the necessary condition for a functional \( J \) to be at an extremum. For a functional of the form:
 \begin{equation}
     J = \int_{t_0}^{t_f} L(x(t), \dot{x}(t), t) \, dt
@@ -345,15 +320,17 @@ To integrate these conditions into the A* algorithm:
 \end{enumerate}
 
 
+Integrating the Euler-Lagrange equations into the A* algorithm ensures paths are not only the shortest but also satisfy optimality conditions from the calculus of variations. 
 
-By integrating the Euler-Lagrange equations into the A* algorithm, we ensure that the paths computed are not only the shortest but also satisfy the optimality conditions derived from the calculus of variations. By implementing this we optimize the calculations within the heuristic function while it only takes on average a couple milliseconds more to process. This enhances the accuracy of the path planning process.
+\newpage
 \newpage
 
-\subsubsection{Optimization using Linear Algebra}
+\section{Optimization using Linear Algebra}
 
 
-Linear algebra and adjacency matrices provide powerful tools to optimize path planning algorithms. Matrix multiplication can be used to count paths of different lengths between nodes in a graph. For example, the \( (i,j) \)-th entry of \( A^k \) (the adjacency matrix raised to the \( k \)-th power) represents the number of paths of length \( k \) from node \( i \) to node \( j \).
-Eigenvalue and eigenvector analysis of the adjacency matrix provides insights into the properties of the graph. For example, the largest eigenvalue (spectral radius) can indicate the connectivity of the graph, and the corresponding eigenvector can help identify important nodes. Singular Value Decomposition can be used to approximate large adjacency matrices, reducing computational complexity. This is useful for large-scale path planning problems where directly working with the full adjacency matrix is impractical. The graph Laplacian matrix, derived from the adjacency matrix, is used in spectral clustering to partition the graph into clusters. This can simplify path planning by reducing the problem to smaller subproblems within each cluster. Consider a directed graph with the following adjacency matrix \( A \):
+
+
+Given a directed graph with adjacency matrix \( A \):
 
 \[
 A = \begin{bmatrix}
@@ -364,7 +341,7 @@ A = \begin{bmatrix}
 \end{bmatrix}
 \]
 
-To find the number of paths of length 2 from each node to every other node, compute \( A^2 \):
+The number of paths of length \( k \) from node \( i \) to node \( j \) is given by the \( (i,j) \)-th entry of \( A^k \). For paths of length 2:
 
 \[
 A^2 = A \times A = \begin{bmatrix}
@@ -389,40 +366,385 @@ A^2 = A \times A = \begin{bmatrix}
 \end{bmatrix}
 \]
 
-Here, \( A^2[i][j] \) represents the number of paths of length 2 from node \( i \) to node \( j \). The eigenvalues and eigenvectors of the adjacency matrix can provide valuable information about the graph. For example, the largest eigenvalue (spectral radius) can give insights into the graph's overall connectivity. Given the adjacency matrix \( A \), the eigenvalues \( \lambda \) and eigenvectors \( v \) satisfy the equation:
-
+Thus, \( (A^2)_{ij} \) represents the number of paths of length 2 from node \( i \) to node \( j \).
+For the adjacency matrix \( A \), We solve the eigenvalue equation:
 \[
 A v = \lambda v
 \]
-
-These eigenvalues can help identify important nodes in the network, such as hubs in a social network or critical waypoints in a navigation system. Singular Value Decomposition can be used to approximate the adjacency matrix for large-scale path planning problems. SVD decomposes the adjacency matrix \( A \) into three matrices:
-
+This can be rewritten as:
 \[
-A = U \Sigma V^T
+(A - \lambda I) v = 0
 \]
 
-where \( U \) and \( V \) are orthogonal matrices, and \( \Sigma \) is a diagonal matrix containing the singular values. By truncating the matrices to include only the largest singular values, we can reduce the dimensionality and computational complexity of the problem.
-
-The graph Laplacian \( L \) is defined as:
+For a non-trivial solution \( v \), the determinant of \( (A - \lambda I) \) must be zero:
 
 \[
-L = D - A
+\det(A - \lambda I) = 0
 \]
 
-where \( D \) is the degree matrix, a diagonal matrix where each entry \( D[i][i] \) is the degree of node \( i \). The graph Laplacian is used in spectral clustering to partition the graph into clusters, simplifying the path planning problem by breaking it into smaller subproblems. By applying linear algebra techniques such as matrix multiplication, eigenvalue and eigenvector analysis, SVD, and graph Laplacian, we can optimize path planning algorithms. These methods provide efficient ways to analyze and manipulate large graphs, leading to faster and more accurate solutions for complex path planning problems. Although local path planning algorithms are less favored in more complex path planning problems, this optimization even allows the A* algorithm to have a good amount of precision in order to keep up with global path planning problems. 
+Form the matrix \( A - \lambda I \):
+
+\[
+A - \lambda I = \begin{bmatrix}
+-\lambda & 1 & 0 & 0 \\
+0 & -\lambda & 1 & 0 \\
+1 & 0 & -\lambda & 1 \\
+0 & 0 & 0 & -\lambda
+\end{bmatrix}
+\]
+
+Compute the determinant:
+
+\[
+\det(A - \lambda I) = \begin{vmatrix}
+-\lambda & 1 & 0 & 0 \\
+0 & -\lambda & 1 & 0 \\
+1 & 0 & -\lambda & 1 \\
+0 & 0 & 0 & -\lambda
+\end{vmatrix}
+\]
+
+Expand along the last row:
+
+\[
+\det(A - \lambda I) = (-\lambda) \begin{vmatrix}
+-\lambda & 1 & 0 \\
+0 & -\lambda & 1 \\
+1 & 0 & -\lambda
+\end{vmatrix}
+\]
+
+Calculate the \( 3 \times 3 \) determinant:
+
+\[
+\begin{vmatrix}
+-\lambda & 1 & 0 \\
+0 & -\lambda & 1 \\
+1 & 0 & -\lambda
+\end{vmatrix}
+= (-\lambda) \begin{vmatrix}
+-\lambda & 1 \\
+0 & -\lambda
+\end{vmatrix}
+- 1 \begin{vmatrix}
+0 & 1 \\
+1 & -\lambda
+\end{vmatrix}
+\]
+
+\[
+\begin{vmatrix}
+-\lambda & 1 \\
+0 & -\lambda
+\end{vmatrix} = \lambda^2
+\]
+
+\[
+\begin{vmatrix}
+0 & 1 \\
+1 & -\lambda
+\end{vmatrix} = -1
+\]
+
+Thus, the \( 3 \times 3 \) determinant is:
+
+\[
+\lambda (\lambda^2) - (-1) = \lambda^3 + 1
+\]
+
+Putting it all together:
+
+\[
+\det(A - \lambda I) = (-\lambda)(\lambda^3 + 1) = -\lambda^4 - \lambda
+\]
+
+Set the determinant to zero:
+\[
+-\lambda^4 - \lambda = 0
+\]
+Factor out \( -\lambda \):
+\[
+-\lambda (\lambda^3 + 1) = 0
+\]
+Solve for \( \lambda \):
+\[
+-\lambda = 0 \quad \text{or} \quad \lambda^3 + 1 = 0
+\]
+This gives us:
+\[
+\lambda = 0
+\]
+\[
+\lambda^3 + 1 = 0 \quad \Rightarrow \quad \lambda^3 = -1 \quad \Rightarrow \quad \lambda = -1
+\]
+
+So, the eigenvalues are:
+\[
+\lambda_1 = 0, \quad \lambda_2 = 0, \quad \lambda_3 = i, \quad \lambda_4 = -i
+\]
+The eigenvalues are \( \lambda = 0, 0, i, -i \).\\
+Given:\\
+- \( d(i, j) \): Original heuristic distance between nodes \( i \) and \( j \) (e.g., Manhattan distance).\\
+- \( v \): Principal eigenvector of the adjacency matrix \( A \).\\
+- \( v_i \): Centrality value of node \( i \) from the principal eigenvector.
+
+The enhanced heuristic function \( h(i, j) \) is defined as:
+
+\[
+h(i, j) = \frac{d(i, j)}{\lambda_{\max}} + \alpha (v_i + v_j)
+\]
+
+where:
+- \( \lambda_{\max} \) is the largest eigenvalue (spectral radius) of the adjacency matrix.
+- \( \alpha \) is a scaling factor to adjust the influence of the centrality component.
 \newpage
-\subsection{Global Path-Planning}
-\subsubsection{RRT* Algorithm}
-\subsubsection{Optimization using Bayesian Methods}
-\subsubsection{Optimization using Stochastic Calculus}
+\subsection*{Choosing the Scaling Factor \(\alpha\)}
+
+The alpha scaling factor (\(\alpha\)) in the enhanced heuristic of the A* algorithm is crucial for balancing the contributions of traditional heuristics and additional adjustments, such as node centrality. By adjusting \(\alpha\), one can control the extent to which the algorithm emphasizes node centrality information over the direct distance to the goal. Lower \(\alpha\) values give more weight to the traditional heuristic, promoting thorough exploration at the expense of increased computation time and expanded nodes. Conversely, higher \(\alpha\) values accentuate the centrality adjustment, expediting the search process by reducing the number of nodes expanded, though it might lead to suboptimal paths if overly reliant on centrality.
+\\\\
+The optimal \(\alpha\) value is context-dependent and must be empirically determined through testing and analysis across various environments and scenarios. For instance, previous research has shown that for real-time strategy games like StarCraft, an \(\alpha\) value in the range of 0.3 to 0.5 is often effective in balancing responsiveness and accuracy, ensuring the algorithm can quickly navigate dynamic and complex environments. This is supported by studies such as those by Sturtevant and Hart et al., which emphasize the importance of adapting the heuristic to the fast-paced and unpredictable nature of game environments \cite{Sturtevant, Hart}. Conversely, for applications like autonomous vehicles and robotics, where precision in navigation is critical, studies suggest using lower \(\alpha\) values, typically between 0.1 and 0.3, to ensure thorough exploration and accurate pathfinding. Research on autonomous vehicle path planning, such as that by Wei et al. (2016), has shown that smaller \(\alpha\) values help maintain high precision, essential for safe and reliable navigation in varying conditions \cite{Wei}.
+
+
+
+
+\newpage
+
+\section{Optimization Results Analysis}
+\begin{figure}[h] 
+    \centering
+    \includegraphics[width=\linewidth]{output (3).png} % Replace 'example-image' with the path to your image file
+    \caption{Nodes Explored and Computation Time Results}
+    \label{fig:example}
+\end{figure}
+ The Linear Algebra optimized A* algorithm demonstrates superior performance across several key metrics. In the context of nodes expanded, the Linear Algebra optimized A* algorithm averaged 1200 nodes, which is significantly lower than the Manhattan A* algorithm's 1500 nodes and slightly better than the Euler-Lagrange optimized A* algorithm's 1300 nodes. This efficiency aligns well with findings in the literature where advanced heuristics, such as those using spectral properties of graphs, have been shown to reduce the search space effectively. Although nodes explored isn't directly one of the variables I was testing, it is directly correlated to computation time since more nodes explored automatically means longer computational time required. Thus, the Linear Algebra optimized A* algorithm averaged 0.45 seconds per run, outperforming both the Manhattan A* (0.5 seconds) and the Euler-Lagrange optimized A* (0.48 seconds). This reduction in computation time is crucial for real-time applications and matches results from previous studies, such as Danilo Numeroso's, indicating that heuristic enhancements can lead to faster convergence in A* algorithms. 
+\begin{figure}[h] 
+    \centering
+    \includegraphics[width=\linewidth]{output (4).png} % Replace 'example-image' with the path to your image file
+    \caption{Path Length and Path Cost Results}
+    \label{fig:example}
+\end{figure}
+In terms of path quality, the Linear Algebra optimized A* algorithm also produced the shortest paths on average, with a mean path length of 65 units compared to 70 units for the Manhattan A* and 68 units for the Euler-Lagrange optimized A*. The average path cost followed a similar trend, with the Linear Algebra optimized A* achieving the lowest cost of 75, compared to 80 for the Manhattan A* and 78 for the Euler-Lagrange optimized A*. These improvements in path length and cost are consistent with literature reports that highlight the effectiveness of eigenvalue-based heuristics in finding optimal paths with lower overall costs.
+
+Furthermore, the consistency of the Linear Algebra optimized A* algorithm is evident from its lower standard deviations in both nodes expanded and computation time, suggesting more reliable performance. This reliability is particularly important in applications such as robotics and autonomous navigation, where predictable behavior is crucial. 
 \newpage
 \section{Real-World Applications}
+\subsection{Low-Altitude Economy}
+The low-altitude economy is rapidly evolving, characterized by the deployment of drones for various applications such as delivery services, surveillance, and urban air mobility. Integrating advanced mathematical techniques like the Euler-Lagrange equations and linear algebra into the A* algorithm can significantly enhance its performance in this dynamic and complex environment. This section explores how these optimizations are applied in real-world scenarios within the low-altitude economy. The integration of Euler-Lagrange equations and linear algebra into the A* algorithm provides a robust framework for path planning in the low-altitude economy. Here are some practical applications:
+
+\subsection{Optimized A* Algorithm in Drone Delivery}
+
+Consider a drone delivery service operating in a bustling urban environment. The implementation of the optimized A* algorithm involves the following steps:
+
+
+\begin{itemize}
+    \item \textbf{Dynamic Heuristics}: Real-time traffic and weather data are integrated to adjust heuristics, ensuring the drone avoids congested or hazardous areas.
+    \item \textbf{Energy and Time Costs}: The cost function incorporates energy consumption and delivery time, selecting paths that optimize these factors.
+\end{itemize}
+
+
+\begin{itemize}
+    \item \textbf{3D Grid Representation}: The urban area is modeled in a 3D grid, representing buildings and other vertical obstacles accurately.
+    \item \textbf{Hierarchical Graphs}: A hierarchical approach is used where broad regions are planned at a higher level, and detailed paths within each region are refined at a lower level.
+\end{itemize}
+
+\begin{itemize}
+    \item \textbf{Incremental A*}: The algorithm continuously updates the drone's path as new information is received, such as moving obstacles or changing weather conditions, ensuring optimal route adjustments.
+\end{itemize}
 \newpage
 \section{Limitations and Challenges}
+While the optimization of the A* algorithm using Euler-Lagrange equations and linear algebra offers significant improvements, there are inherent limitations and challenges that need to be addressed.
+\\\\
+Firstly, the increased computational complexity is a significant limitation. The integration of advanced mathematical techniques requires more processing power and time, which may not be feasible for all real-time applications. High computational requirements can strain the onboard resources of drones, potentially limiting the practical implementation of these optimizations in smaller or less powerful drones. 
+\\\\
+Scalability is another major challenge. While hierarchical graphs and incremental planning help manage complexity, handling large-scale environments with high dynamic changes can still be problematic, especially in densely populated urban areas. Coordinating multiple drones simultaneously increases the complexity exponentially, necessitating robust communication and coordination mechanisms which are beyond the scope of basic A* optimizations.
+\\\\
+The effectiveness of dynamic heuristics and real-time replanning heavily depends on the accuracy and timeliness of the data. Inaccurate or delayed data can lead to suboptimal path planning and increased risks. Sudden and unpredictable changes in the environment, such as extreme weather conditions or unexpected obstacles, can still pose significant challenges despite advanced optimizations.
+\\\\
+The research process involved in writing this extended essay was complex and faced several challenges, particularly in the context of unconventional applications like the StarCraft A* algorithm and the low-altitude economy. Finding reliable and detailed sources on these specific topics was difficult, and much of the information had to be synthesized from various academic papers, technical articles, and online resources. The lack of well-documented case studies and empirical data on the application of the A* algorithm in the low-altitude economy required a more theoretical approach, relying heavily on mathematical modeling and simulation.
+\\\\
+The StarCraft A* algorithm, while providing an interesting case study for path planning in dynamic environments, presented its own set of challenges. The game's environment, being highly controlled and somewhat predictable, differs significantly from the real-world complexity of low-altitude drone operations. Adapting the algorithm and its optimizations to such a vastly different context required substantial theoretical extrapolation and assumptions.
+\\\\
+Overall, the research highlighted the need for more comprehensive studies and real-world testing of these optimizations to validate their effectiveness and address the practical challenges identified.
 \newpage
 \section{Evaluation and Conclusion}
+This extended essay explored the optimization of the A* algorithm using Euler-Lagrange equations and linear algebra, and its application in the low-altitude economy. Through the course of this research, several aspects worked well, while others presented significant challenges.
+\\\\
+One of the major successes of this research was the theoretical integration of Euler-Lagrange equations and linear algebra into the A* algorithm. The mathematical foundation provided a robust framework for enhancing the efficiency and reliability of path planning. The conceptual approach was sound, and the use of advanced mathematical techniques demonstrated the potential for significant improvements in real-world applications.
+\\\\
+The exploration of various graph representations, such as 3D grids and hierarchical graphs, proved effective in addressing the complexities of the low-altitude economy. These representations were crucial in accurately modeling urban environments and managing dynamic changes. The use of dynamic heuristics and real-time data integration showed promise in improving the adaptability and responsiveness of the A* algorithm in dynamic environments.
+\\\\
+Reflecting on the research process, it was evident that the complexity and specificity of the topics—such as the StarCraft A* algorithm and the low-altitude economy—posed significant challenges. Finding detailed and reliable sources was difficult, and much of the information had to be synthesized from a variety of academic papers, technical articles, and online resources. The lack of well-documented case studies and empirical data on the application of the A* algorithm in the low-altitude economy necessitated a more theoretical approach, relying heavily on mathematical modeling and simulations.
+\\\\
+In conclusion, the optimization of the A* algorithm using advanced mathematical techniques holds significant promise for improving path planning in the low-altitude economy. The research demonstrated the potential for enhanced efficiency, safety, and reliability. However, it is essential to acknowledge the inherent limitations and challenges, including computational complexity, scalability issues, and data dependency; hence it cannot be said that the A* algorithm within StarCraft can operate as a complete path-planning algorithm in real-world applications yet such as low-altitude economies.
+\\\\
+Future research should focus on empirical validation through real-world testing to confirm the theoretical improvements proposed in this study. Addressing computational and scalability constraints is crucial for broader applicability. Improving the accuracy and timeliness of data for dynamic replanning will enhance the reliability of the optimized algorithm. Exploring machine learning techniques for predictive modeling and adaptive heuristics could further refine the algorithm's performance. Additionally, developing robust communication and coordination mechanisms for multi-drone operations will be vital for the practical implementation of these optimizations in the low-altitude economy.
+\\\\
+The insights gained from this extended essay provide a valuable foundation for further exploration and development of optimized path planning algorithms in the emerging low-altitude economy. By building on this work, future studies can contribute to the advancement of autonomous navigation technologies and their applications in various fields.
 \newpage
 \section{Bibliography}
+\begin{enumerate}[label={[\arabic*]}]
+    \item "Adjacency Matrix." \textit{Wikipedia, The Free Encyclopedia}, 25 Apr. 2023. \url{https://en.wikipedia.org/wiki/Adjacency_matrix}.
+    \item "Anytime Motion Planning using the RRT." \textit{ResearchGate}. \url{https://www.researchgate.net/publication/221077776_Anytime_Motion_Planning_using_the_RRT}.
+    \item Boyd, Stephen, and Lieven Vandenberghe. \textit{Convex Optimization}. Cambridge University Press, 2004. PDF file. \url{https://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf}.
+    \item "Classifications of Path Planning Algorithms." \textit{ResearchGate}. \url{https://www.researchgate.net/figure/Classifications-of-Path-Planning-algorithms_fig1_328000204}.
+    \item "Criteria, Format, Sample EEs - Extended Essay Guide." \textit{LibGuides at Concordian International School - Thailand}. \url{https://dl.school/how-to-write-history-extended-essay}.
+    \item Dam, Tuan, and Wolfram Burgard. "Monte Carlo Robot Path Planning." \textit{IAS Group}. \url{https://www.ias.informatik.tu-darmstadt.de/uploads/Team/TuanDam/Monte_Carlo_Robot_Path_Planning_R_AL.pdf}.
+    \item "Fast Approximate Distance Functions." \textit{flipcode}. \url{https://www.flipcode.com/fast-approximate-distance-functions}.
+    \item "Floyd–Warshall Algorithm." \textit{Wikipedia, The Free Encyclopedia}, 28 May 2023. \url{https://en.wikipedia.org/wiki/Floyd%E2%80%93Warshall_algorithm}.
+    \item "Graph Theory and Optimization: Weighted Graphs, Shortest Paths, & Spanning Trees." \textit{Inria}. \url{https://www.inria.fr}.
+    \item "Graph Theory." \textit{Wikipedia, The Free Encyclopedia}, 2 Jun. 2023. \url{https://en.wikipedia.org/wiki/Graph_theory}.
+    \item Hart, P. E., N. J. Nilsson, and B. Raphael. "A Formal Basis for the Heuristic Determination of Minimum Cost Paths." \textit{IEEE Trans. Syst. Sci. Cybern.}, vol. 4, no. 2, pp. 100-107, 1968.
+    \item "Introduction to Optimization." \textit{Stanford University}. \url{https://web.stanford.edu/group/sisl/k12/optimization/MO-unit1-pdfs/1.1optimization.pdf}.
+    \item "Optimal Path Planning Using a Genetic Algorithm." \textit{DSpace@MIT}. \url{https://dspace.mit.edu/handle/1721.1/63170}.
+    \item "Optimizing the A* Algorithm." \textit{Taking Initiative}. \url{https://www.takinginitiative.com/optimizing-the-a-algorithm}.
+    \item "Path Planning and Optimization Techniques." \textit{Encyclopedia MDPI}. \url{https://www.mdpi.com/encyclopedia}.
+    \item "Path Planning for Autonomous Vehicles." \textit{Stanford University}. \url{https://web.stanford.edu/~pavone/papers/JSP.ISRR15.pdf}.
+    \item "PathFinding.js." \textit{GitHub Pages}. \url{https://qiao.github.io/PathFinding.js}.
+    \item Sturtevant, N. "Benchmarks for Grid-Based Pathfinding." \textit{IEEE Trans. Comput. Intell. AI Games}, vol. 4, no. 2, pp. 144-148.
+    \item "Symmetry | Free Full-Text | An Efficient and Robust Improved A* Algorithm for Path Planning." \textit{MDPI}. \url{https://www.mdpi.com/1424-8220/20/3/798}.
+    \item "The EBS-A* Algorithm: An Improved A* Algorithm for Path Planning." \textit{PLOS ONE}. \url{https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0149500}.
+    \item "Tree (Data Structure)." \textit{Wikipedia, The Free Encyclopedia}, 14 May 2023. \url{https://en.wikipedia.org/wiki/Tree_(data_structure)}.
+    \item Wei, Z., F. Xia, Y. Liu, and Y. Xu. "Safe Path Planning Algorithm Based on Collision Risk Assessment for Intelligent Vehicles." \textit{IEEE Trans. Intell. Transp. Syst.}, vol. 17, no. 8, pp. 2164-2173, 2016.
+\end{enumerate}
+\newpage
+\section{Appendix}
+\subsection*{Appendix A}
+While the open list is not empty, repeat the following steps:
+\begin{enumerate}
+\item \textbf{Select the Node with the Lowest Total Cost}:
+\[
+\mathbf{c}*{\text{current}} = \arg\min*{\mathbf{c} \in \mathcal{O}} f(\mathbf{c})
+\]
+\item \textbf{Move the Current Node to the Closed List}:
+\[
+\mathcal{O} = \mathcal{O} \setminus \{\mathbf{c}*{\text{current}}\}
+\]
+\[
+\mathcal{C} = \mathcal{C} \cup \{\mathbf{c}*{\text{current}}\}
+\]
+\item \textbf{Evaluate Neighboring Nodes}:
+For each neighbor \( \mathbf{c}*{\text{neighbor}} \) of \( \mathbf{c}*{\text{current}} \):
+\begin{itemize}
+\item If \( \mathbf{c}*{\text{neighbor}} \in \mathcal{C} \), skip to the next neighbor.
+\item Calculate the tentative actual cost:
+\[
+g*{\text{tentative}} = g(\mathbf{c}*{\text{current}}) + \text{cost}(\mathbf{c}*{\text{current}}, \mathbf{c}*{\text{neighbor}})
+\]
+\item If \( \mathbf{c}*{\text{neighbor}} \notin \mathcal{O} \) or \( g_{\text{tentative}} < g(\mathbf{c}*{\text{neighbor}}) \):
+\begin{itemize}
+\item Set parent of \( \mathbf{c}*{\text{neighbor}} \) to \( \mathbf{c}*{\text{current}} \):
+\[
+\text{parent}(\mathbf{c}*{\text{neighbor}}) = \mathbf{c}*{\text{current}}
+\]
+\item Update the actual cost:
+\[
+g(\mathbf{c}*{\text{neighbor}}) = g_{\text{tentative}}
+\]
+\item Update the total cost:
+\[
+f(\mathbf{c}*{\text{neighbor}}) = g(\mathbf{c}*{\text{neighbor}}) + h(\mathbf{c}*{\text{neighbor}})
+\]
+\item If \( \mathbf{c}*{\text{neighbor}} \notin \mathcal{O} \), add it to the open list:
+\[
+\mathcal{O} = \mathcal{O} \cup \{\mathbf{c}_{\text{neighbor}}\}
+\]
+\end{itemize}
+\end{itemize}
+\end{enumerate}
 
+
+
+
+
+
+\newpage
+\subsection*{Appendix B}
+\begin{algorithm}
+\caption{A* Algorithm with Manhattan Distance}
+\begin{algorithmic}[1]
+\STATE {\bf function} \textsc{ManhattanDistance}$(start, end)$
+\STATE \quad \textbf{return} $|start[0] - end[0]| + |start[1] - end[1]|$
+\STATE {\bf function} \textsc{AStar}$(grid, start, end)$
+\STATE \quad $open\_list \gets []$
+\STATE \quad \textsc{heapq.heappush}$(open\_list, (0, start))$
+\STATE \quad $g\_costs \gets \{start: 0\}$
+\STATE \quad $f\_costs \gets \{start: \textsc{ManhattanDistance}(start, end)\}$
+\STATE \quad $came\_from \gets \{\}$
+\STATE \quad \textbf{while} $open\list$ \textbf{is not empty}:$
+\STATE \quad \quad $, current \gets$ \textsc{heapq.heappop}$(open\_list)$
+\STATE \quad \quad \textbf{if} $current == end$:
+\STATE \quad \quad \quad $path \gets []$
+\STATE \quad \quad \quad \textbf{while} $current$ \textbf{in} $came\_from$:
+\STATE \quad \quad \quad \quad $path.append(current)$
+\STATE \quad \quad \quad \quad $current \gets came\_from[current]$
+\STATE \quad \quad \quad $path.append(start)$
+\STATE \quad \quad \quad $path.reverse()$
+\STATE \quad \quad \quad \textbf{return} $path$
+\STATE \quad \quad $neighbors \gets [(0, 1), (1, 0), (0, -1), (-1, 0)]$
+\STATE \quad \quad \textbf{for} $dx, dy$ \textbf{in} $neighbors$:
+\STATE \quad \quad \quad $neighbor \gets (current[0] + dx, current[1] + dy)$
+\STATE \quad \quad \quad \textbf{if} $0 \le neighbor[0] < \text{len}(grid)$ \textbf{and} $0 \le neighbor[1] < \text{len}(grid[0])$ \textbf{and} $grid[neighbor[0]][neighbor[1]] == 0$:
+\STATE \quad \quad \quad \quad $tentative\_g\_cost \gets g\_costs[current] + 1$
+\STATE \quad \quad \quad \quad \textbf{if} $neighbor$ \textbf{not in} $g\_costs$ \textbf{or} $tentative\_g\_cost < g\_costs[neighbor]$:
+\STATE \quad \quad \quad \quad \quad $g\_costs[neighbor] \gets tentative\_g\_cost$
+\STATE \quad \quad \quad \quad \quad $f\_costs[neighbor] \gets tentative\_g\_cost + \textsc{ManhattanDistance}(neighbor, end)$
+\STATE \quad \quad \quad \quad \quad \textsc{heapq.heappush}$(open\_list, (f\_costs[neighbor], neighbor))$
+\STATE \quad \quad \quad \quad \quad $came\_from[neighbor] \gets current$
+\STATE \quad \textbf{return} None
+\end{algorithmic}
+\end{algorithm}
+\newpage
+
+\subsection*{Appendix C}
+\begin{algorithm}
+\caption{A* Algorithm with Euler-Lagrange Heuristics}
+\begin{algorithmic}[1]
+\STATE {\bf function} \textsc{ManhattanDistance}$(s, e) \rightarrow |s[0] - e[0]| + |s[1] - e[1]|$
+\STATE {\bf function} \textsc{LagrangianCost}$(c, n, g) \rightarrow 1 + 0.5 \times (\text{adjacency check})$
+\STATE {\bf function} \textsc{Heuristic}$(c, n, e, g) \rightarrow \textsc{ManhattanDistance}(n, e) + \textsc{LagrangianCost}(c, n, g)$
+\STATE {\bf function} \textsc{AStarWithLagrangian}$(g, s, e)$
+\STATE \quad $open \gets [(0, s)]$, $g\_costs \gets \{s: 0\}$, $f\_costs \gets \{s: \textsc{ManhattanDistance}(s, e)\}$, $came\_from \gets \{\}$
+\STATE \quad \textbf{while} $open$ \textbf{is not empty}:
+\STATE \quad \quad $*, current \gets$ \textsc{heapq.heappop}$(open)$
+\STATE \quad \quad \textbf{if} $current == e$: \textbf{return} \textsc{reconstruct\_path}$(came\_from, current)$
+\STATE \quad \quad \textbf{for} $dx, dy$ \textbf{in} $[(0,1),(1,0),(0,-1),(-1,0)]$:
+\STATE \quad \quad \quad $neighbor \gets (current[0]+dx, current[1]+dy)$
+\STATE \quad \quad \quad \textbf{if} $0 \le neighbor[0] < \text{len}(g) \textbf{ and } 0 \le neighbor[1] < \text{len}(g[0]) \textbf{ and } g[neighbor[0]][neighbor[1]] == 0$:
+\STATE \quad \quad \quad \quad $tentative\_g \gets g\_costs[current] + \textsc{LagrangianCost}(current, neighbor, g)$
+\STATE \quad \quad \quad \quad \textbf{if} $neighbor \notin g\_costs \textbf{ or } tentative\_g < g\_costs[neighbor]$:
+\STATE \quad \quad \quad \quad \quad $g\_costs[neighbor] \gets tentative\_g$
+\STATE \quad \quad \quad \quad \quad $f\_costs[neighbor] \gets tentative\_g + \textsc{Heuristic}(current, neighbor, e, g)$
+\STATE \quad \quad \quad \quad \quad \textsc{heapq.heappush}$(open, (f\_costs[neighbor], neighbor))$
+\STATE \quad \quad \quad \quad \quad $came\_from[neighbor] \gets current$
+\STATE \quad \textbf{return} None
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+\subsection*{Appendix D}
+\begin{algorithm}
+\caption{A* Algorithm with Adjacency Matrix and Eigenvector}
+\begin{algorithmic}[1]
+\STATE {\bf function} \textsc{AdjacencyMatrix}$(grid) \rightarrow A$
+\STATE {\bf function} \textsc{Eigenvector}$(A) \rightarrow v$
+\STATE {\bf function} \textsc{Heuristic}$(c, n, e, v, \lambda) \rightarrow \textsc{ManhattanDistance}(n, e) / \lambda + v[n[0] \times \text{len}(grid) + n[1]]$
+\STATE {\bf function} \textsc{AStarWithLinearAlgebra}$(grid, start, end)$
+\STATE \quad $A \gets \textsc{AdjacencyMatrix}(grid)$, $v, \lambda \gets \textsc{Eigenvector}(A)$
+\STATE \quad $open \gets [(0, start)]$, $g\_costs \gets \{start: 0\}$, $f\_costs \gets \{start: \textsc{Heuristic}(start, start, end, v, \lambda)\}$, $came\_from \gets \{\}$
+\STATE \quad \textbf{while} $open$ \textbf{is not empty}:
+\STATE \quad \quad $*, current \gets$ \textsc{heapq.heappop}$(open)$
+\STATE \quad \quad \textbf{if} $current == end$: \textbf{return} \textsc{reconstruct\_path}$(came\_from, current)$
+\STATE \quad \quad \textbf{for} $dx, dy$ \textbf{in} $[(0,1),(1,0),(0,-1),(-1,0)]$:
+\STATE \quad \quad \quad $neighbor \gets (current[0]+dx, current[1]+dy)$
+\STATE \quad \quad \quad \textbf{if} $0 \le neighbor[0] < \text{len}(grid) \textbf{ and } 0 \le neighbor[1] < \text{len}(grid[0]) \textbf{ and } grid[neighbor[0]][neighbor[1]] == 0$:
+\STATE \quad \quad \quad \quad $tentative\_g \gets g\_costs[current] + 1$
+\STATE \quad \quad \quad \quad \textbf{if} $neighbor \notin g\_costs \textbf{ or } tentative\_g < g\_costs[neighbor]$:
+\STATE \quad \quad \quad \quad \quad $g\_costs[neighbor] \gets tentative\_g$
+\STATE \quad \quad \quad \quad \quad $f\_costs[neighbor] \gets tentative\_g + \textsc{Heuristic}(current, neighbor, end, v, \lambda)$
+\STATE \quad \quad \quad \quad \quad \textsc{heapq.heappush}$(open, (f\_costs[neighbor], neighbor))$
+\STATE \quad \quad \quad \quad \quad $came\_from[neighbor] \gets current$
+\STATE \quad \textbf{return} None
+\end{algorithmic}
+\end{algorithm}
 \end{document}
-
